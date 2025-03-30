@@ -1,0 +1,16 @@
+{
+  "name": "tourze/symfony-request-file-clean-bundle",
+  "description": "",
+  "type": "symfony-bundle",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.1",
+    "symfony/http-foundation": "^6.4",
+    "symfony/framework-bundle": "^6.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "Tourze\\RequestFileCleanBundle\\": "src"
+    }
+  }
+}
