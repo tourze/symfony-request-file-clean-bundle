@@ -16,6 +16,11 @@
       "Tourze\\RequestFileCleanBundle\\": "src"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Tourze\\RequestFileCleanBundle\\Tests\\": "tests"
+    }
+  },
   "require-dev": {
     "phpstan/phpstan": "^2.1"
   },
