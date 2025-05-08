@@ -10,7 +10,8 @@
     "symfony/http-kernel": "^6.4",
     "symfony/http-foundation": "^6.4",
     "symfony/yaml": "^6.4 || ^7.1",
-    "symfony/framework-bundle": "^6.4"
+    "symfony/framework-bundle": "^6.4",
+    "symfony/event-dispatcher": "^6.4"
   },
   "autoload": {
     "psr-4": {
