@@ -57,9 +57,15 @@ class RequestFileCleanSubscriberTest extends TestCase
         $tempFilePath = tempnam(sys_get_temp_dir(), 'test');
         $this->assertFileExists($tempFilePath);
 
-        // 创建Request对象
+        // 创建Request对象和FileBag
         $request = new Request();
-        $request->files = new FileBag([
+        $fileBag = new FileBag();
+        
+        // 使用反射来设置内部的parameters属性，模拟array形式的上传数据
+        $reflection = new \ReflectionClass($fileBag);
+        $parametersProperty = $reflection->getProperty('parameters');
+        $parametersProperty->setAccessible(true);
+        $parametersProperty->setValue($fileBag, [
             'test_file' => [
                 'tmp_name' => $tempFilePath,
                 'name' => 'test.txt',
@@ -68,6 +74,8 @@ class RequestFileCleanSubscriberTest extends TestCase
                 'error' => 0
             ]
         ]);
+        
+        $request->files = $fileBag;
 
         // 创建Response对象
         $response = new Response();
@@ -196,9 +204,15 @@ class RequestFileCleanSubscriberTest extends TestCase
         $this->assertFileExists($tempFilePath1);
         $this->assertFileExists($tempFilePath2);
 
-        // 创建Request对象
+        // 创建Request对象和FileBag
         $request = new Request();
-        $request->files = new FileBag([
+        $fileBag = new FileBag();
+        
+        // 使用反射来设置内部的parameters属性，模拟嵌套array形式的上传数据
+        $reflection = new \ReflectionClass($fileBag);
+        $parametersProperty = $reflection->getProperty('parameters');
+        $parametersProperty->setAccessible(true);
+        $parametersProperty->setValue($fileBag, [
             'files' => [
                 'file1' => [
                     'tmp_name' => $tempFilePath1,
@@ -216,6 +230,8 @@ class RequestFileCleanSubscriberTest extends TestCase
                 ]
             ]
         ]);
+        
+        $request->files = $fileBag;
 
         // 创建Response对象
         $response = new Response();
