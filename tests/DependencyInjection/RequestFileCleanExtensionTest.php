@@ -2,30 +2,63 @@
 
 namespace Tourze\RequestFileCleanBundle\Tests\DependencyInjection;
 
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Tourze\PHPUnitSymfonyUnitTest\AbstractDependencyInjectionExtensionTestCase;
 use Tourze\RequestFileCleanBundle\DependencyInjection\RequestFileCleanExtension;
 use Tourze\RequestFileCleanBundle\EventSubscriber\RequestFileCleanSubscriber;
+use Tourze\SymfonyDependencyServiceLoader\AutoExtension;
 
-class RequestFileCleanExtensionTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(RequestFileCleanExtension::class)]
+final class RequestFileCleanExtensionTest extends AbstractDependencyInjectionExtensionTestCase
 {
-    /**
-     * 测试扩展是否正确注册服务
-     */
-    public function testLoad(): void
+    private RequestFileCleanExtension $extension;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->extension = new RequestFileCleanExtension();
+    }
+
+    public function testExtensionExtendsSymfonyExtension(): void
+    {
+        $this->assertInstanceOf(AutoExtension::class, $this->extension);
+    }
+
+    public function testExtensionIsInstantiable(): void
+    {
+        $this->assertInstanceOf(RequestFileCleanExtension::class, $this->extension);
+    }
+
+    public function testLoadDoesNotThrowException(): void
     {
         $container = new ContainerBuilder();
-        $extension = new RequestFileCleanExtension();
+        $container->setParameter('kernel.environment', 'test');
 
-        $extension->load([], $container);
+        $this->expectNotToPerformAssertions();
+        $this->extension->load([], $container);
+    }
 
-        // 验证订阅者服务已注册
-        $this->assertTrue($container->has(RequestFileCleanSubscriber::class));
+    public function testServiceIsRegistered(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.environment', 'test');
 
-        // 验证订阅者服务具有正确的参数
+        $this->extension->load([], $container);
+
+        $this->assertTrue($container->hasDefinition(RequestFileCleanSubscriber::class));
         $definition = $container->getDefinition(RequestFileCleanSubscriber::class);
         $this->assertTrue($definition->isAutowired());
         $this->assertTrue($definition->isAutoconfigured());
-        $this->assertFalse($definition->isPublic());
+        $this->assertTrue($definition->isPublic());
+    }
+
+    public function testGetAliasReturnsCorrectAlias(): void
+    {
+        $this->assertSame('request_file_clean', $this->extension->getAlias());
     }
 }

@@ -1,20 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\RequestFileCleanBundle\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractBundleTestCase;
 use Tourze\RequestFileCleanBundle\RequestFileCleanBundle;
 
-class RequestFileCleanBundleTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(RequestFileCleanBundle::class)]
+#[RunTestsInSeparateProcesses]
+final class RequestFileCleanBundleTest extends AbstractBundleTestCase
 {
-    /**
-     * 测试Bundle类是否正确继承了Symfony的Bundle基类
-     */
-    public function testBundleInstance(): void
-    {
-        $bundle = new RequestFileCleanBundle();
-
-        $this->assertInstanceOf(Bundle::class, $bundle);
-    }
 }

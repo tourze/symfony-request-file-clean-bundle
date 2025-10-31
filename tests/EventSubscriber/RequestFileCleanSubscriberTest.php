@@ -2,18 +2,28 @@
 
 namespace Tourze\RequestFileCleanBundle\Tests\EventSubscriber;
 
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\FileBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractEventSubscriberTestCase;
 use Tourze\RequestFileCleanBundle\EventSubscriber\RequestFileCleanSubscriber;
 
-class RequestFileCleanSubscriberTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(RequestFileCleanSubscriber::class)]
+#[RunTestsInSeparateProcesses]
+final class RequestFileCleanSubscriberTest extends AbstractEventSubscriberTestCase
 {
+    protected function onSetUp(): void
+    {
+    }
+
     /**
      * 测试处理普通上传文件的情况
      */
@@ -24,7 +34,10 @@ class RequestFileCleanSubscriberTest extends TestCase
         $this->assertFileExists($tempFilePath);
 
         // 创建UploadedFile对象
-        /** @var UploadedFile&MockObject $uploadedFile */
+        // 在这里必须使用具体的 UploadedFile 类进行 mock，因为：
+        // 1. 测试需要验证 getPathname() 方法的具体行为
+        // 2. UploadedFile 类没有对应的接口，这是 Symfony 框架的设计
+        // 3. 模拟文件上传的真实场景必须使用具体的文件对象
         $uploadedFile = $this->createMock(UploadedFile::class);
         $uploadedFile->method('getPathname')->willReturn($tempFilePath);
 
@@ -36,12 +49,12 @@ class RequestFileCleanSubscriberTest extends TestCase
         $response = new Response();
 
         // 创建TerminateEvent对象
-        /** @var HttpKernelInterface&MockObject $kernel */
         $kernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent($kernel, $request, $response);
 
         // 执行订阅器方法
-        $subscriber = new RequestFileCleanSubscriber();
+        /** @var RequestFileCleanSubscriber $subscriber */
+        $subscriber = self::getContainer()->get(RequestFileCleanSubscriber::class);
         $subscriber->onTerminated($event);
 
         // 验证文件已被删除
@@ -60,7 +73,7 @@ class RequestFileCleanSubscriberTest extends TestCase
         // 创建Request对象和FileBag
         $request = new Request();
         $fileBag = new FileBag();
-        
+
         // 使用反射来设置内部的parameters属性，模拟array形式的上传数据
         $reflection = new \ReflectionClass($fileBag);
         $parametersProperty = $reflection->getProperty('parameters');
@@ -71,22 +84,22 @@ class RequestFileCleanSubscriberTest extends TestCase
                 'name' => 'test.txt',
                 'type' => 'text/plain',
                 'size' => 0,
-                'error' => 0
-            ]
+                'error' => 0,
+            ],
         ]);
-        
+
         $request->files = $fileBag;
 
         // 创建Response对象
         $response = new Response();
 
         // 创建TerminateEvent对象
-        /** @var HttpKernelInterface&MockObject $kernel */
         $kernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent($kernel, $request, $response);
 
         // 执行订阅器方法
-        $subscriber = new RequestFileCleanSubscriber();
+        /** @var RequestFileCleanSubscriber $subscriber */
+        $subscriber = self::getContainer()->get(RequestFileCleanSubscriber::class);
         $subscriber->onTerminated($event);
 
         // 验证文件已被删除
@@ -102,7 +115,10 @@ class RequestFileCleanSubscriberTest extends TestCase
         $nonExistentPath = sys_get_temp_dir() . '/non_existent_' . uniqid();
 
         // 创建UploadedFile对象
-        /** @var UploadedFile&MockObject $uploadedFile */
+        // 在这里必须使用具体的 UploadedFile 类进行 mock，因为：
+        // 1. 测试需要验证 getPathname() 方法的具体行为
+        // 2. UploadedFile 类没有对应的接口，这是 Symfony 框架的设计
+        // 3. 模拟文件上传的真实场景必须使用具体的文件对象
         $uploadedFile = $this->createMock(UploadedFile::class);
         $uploadedFile->method('getPathname')->willReturn($nonExistentPath);
 
@@ -114,15 +130,16 @@ class RequestFileCleanSubscriberTest extends TestCase
         $response = new Response();
 
         // 创建TerminateEvent对象
-        /** @var HttpKernelInterface&MockObject $kernel */
         $kernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent($kernel, $request, $response);
 
         // 执行订阅器方法 - 不应该抛出异常
-        $subscriber = new RequestFileCleanSubscriber();
+        /** @var RequestFileCleanSubscriber $subscriber */
+        $subscriber = self::getContainer()->get(RequestFileCleanSubscriber::class);
         $subscriber->onTerminated($event);
 
-        $this->assertTrue(true); // 如果没有异常，测试通过
+        // 验证不存在的文件依然不存在（测试方法处理不存在文件的鲁棒性）
+        $this->assertFileDoesNotExist($nonExistentPath);
     }
 
     /**
@@ -138,15 +155,16 @@ class RequestFileCleanSubscriberTest extends TestCase
         $response = new Response();
 
         // 创建TerminateEvent对象
-        /** @var HttpKernelInterface&MockObject $kernel */
         $kernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent($kernel, $request, $response);
 
         // 执行订阅器方法
-        $subscriber = new RequestFileCleanSubscriber();
+        /** @var RequestFileCleanSubscriber $subscriber */
+        $subscriber = self::getContainer()->get(RequestFileCleanSubscriber::class);
         $subscriber->onTerminated($event);
 
-        $this->assertTrue(true); // 如果没有异常，测试通过
+        // 验证空的 FileBag 处理正常，没有副作用
+        $this->assertEmpty($request->files->all());
     }
 
     /**
@@ -161,11 +179,17 @@ class RequestFileCleanSubscriberTest extends TestCase
         $this->assertFileExists($tempFilePath2);
 
         // 创建UploadedFile对象
-        /** @var UploadedFile&MockObject $uploadedFile1 */
+        // 在这里必须使用具体的 UploadedFile 类进行 mock，因为：
+        // 1. 测试需要验证 getPathname() 方法的具体行为
+        // 2. UploadedFile 类没有对应的接口，这是 Symfony 框架的设计
+        // 3. 模拟文件上传的真实场景必须使用具体的文件对象
         $uploadedFile1 = $this->createMock(UploadedFile::class);
         $uploadedFile1->method('getPathname')->willReturn($tempFilePath1);
 
-        /** @var UploadedFile&MockObject $uploadedFile2 */
+        // 在这里必须使用具体的 UploadedFile 类进行 mock，因为：
+        // 1. 测试需要验证 getPathname() 方法的具体行为
+        // 2. UploadedFile 类没有对应的接口，这是 Symfony 框架的设计
+        // 3. 模拟文件上传的真实场景必须使用具体的文件对象
         $uploadedFile2 = $this->createMock(UploadedFile::class);
         $uploadedFile2->method('getPathname')->willReturn($tempFilePath2);
 
@@ -173,19 +197,19 @@ class RequestFileCleanSubscriberTest extends TestCase
         $request = new Request();
         $request->files = new FileBag([
             'test_file1' => $uploadedFile1,
-            'test_file2' => $uploadedFile2
+            'test_file2' => $uploadedFile2,
         ]);
 
         // 创建Response对象
         $response = new Response();
 
         // 创建TerminateEvent对象
-        /** @var HttpKernelInterface&MockObject $kernel */
         $kernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent($kernel, $request, $response);
 
         // 执行订阅器方法
-        $subscriber = new RequestFileCleanSubscriber();
+        /** @var RequestFileCleanSubscriber $subscriber */
+        $subscriber = self::getContainer()->get(RequestFileCleanSubscriber::class);
         $subscriber->onTerminated($event);
 
         // 验证文件已被删除
@@ -207,7 +231,7 @@ class RequestFileCleanSubscriberTest extends TestCase
         // 创建Request对象和FileBag
         $request = new Request();
         $fileBag = new FileBag();
-        
+
         // 使用反射来设置内部的parameters属性，模拟嵌套array形式的上传数据
         $reflection = new \ReflectionClass($fileBag);
         $parametersProperty = $reflection->getProperty('parameters');
@@ -219,39 +243,34 @@ class RequestFileCleanSubscriberTest extends TestCase
                     'name' => 'test1.txt',
                     'type' => 'text/plain',
                     'size' => 0,
-                    'error' => 0
+                    'error' => 0,
                 ],
                 'file2' => [
                     'tmp_name' => $tempFilePath2,
                     'name' => 'test2.txt',
                     'type' => 'text/plain',
                     'size' => 0,
-                    'error' => 0
-                ]
-            ]
+                    'error' => 0,
+                ],
+            ],
         ]);
-        
+
         $request->files = $fileBag;
 
         // 创建Response对象
         $response = new Response();
 
         // 创建TerminateEvent对象
-        /** @var HttpKernelInterface&MockObject $kernel */
         $kernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent($kernel, $request, $response);
 
         // 执行订阅器方法
-        $subscriber = new RequestFileCleanSubscriber();
+        /** @var RequestFileCleanSubscriber $subscriber */
+        $subscriber = self::getContainer()->get(RequestFileCleanSubscriber::class);
         $subscriber->onTerminated($event);
 
-        // 注意：目前的实现可能不会清理嵌套数组中的文件，这个测试可能会失败
-        // 这里我们可以改进RequestFileCleanSubscriber，或者修改期望的结果
-        $this->assertFileExists($tempFilePath1);
-        $this->assertFileExists($tempFilePath2);
-
-        // 手动清理测试文件
-        @unlink($tempFilePath1);
-        @unlink($tempFilePath2);
+        // 验证嵌套数组中的文件已被正确清理
+        $this->assertFileDoesNotExist($tempFilePath1);
+        $this->assertFileDoesNotExist($tempFilePath2);
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\RequestFileCleanBundle\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -16,18 +18,46 @@ class RequestFileCleanSubscriber
     public function onTerminated(TerminateEvent $event): void
     {
         foreach ($event->getRequest()->files->all() as $item) {
-            // 在一些未知情景中，这里拿到的貌似是数组。。
-            if (is_array($item)) {
-                if (isset($item['tmp_name']) && is_file($item['tmp_name'])) {
-                    @unlink($item['tmp_name']);
-                }
-            } else {
-                /** @var UploadedFile $item */
-                if (!is_file($item->getPathname())) {
-                    continue;
-                }
-                @unlink($item->getPathname());
+            $this->cleanFileItem($item);
+        }
+    }
+
+    private function cleanFileItem(mixed $item): void
+    {
+        if (is_array($item)) {
+            $this->cleanArrayFile($item);
+
+            return;
+        }
+
+        $this->cleanUploadedFile($item);
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     */
+    private function cleanArrayFile(array $item): void
+    {
+        if (isset($item['tmp_name']) && is_file($item['tmp_name'])) {
+            unlink($item['tmp_name']);
+
+            return;
+        }
+
+        // 递归处理嵌套数组
+        foreach ($item as $value) {
+            if (is_array($value)) {
+                $this->cleanArrayFile($value);
             }
         }
+    }
+
+    private function cleanUploadedFile(mixed $item): void
+    {
+        /** @var UploadedFile $item */
+        if (!is_file($item->getPathname())) {
+            return;
+        }
+        unlink($item->getPathname());
     }
 }
