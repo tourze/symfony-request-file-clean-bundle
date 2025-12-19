@@ -6,7 +6,7 @@ namespace Tourze\RequestFileCleanBundle\DependencyInjection;
 
 use Tourze\SymfonyDependencyServiceLoader\AutoExtension;
 
-class RequestFileCleanExtension extends AutoExtension
+final class RequestFileCleanExtension extends AutoExtension
 {
     protected function getConfigDir(): string
     {
